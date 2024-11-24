@@ -8,17 +8,17 @@ from selenium.webdriver.support import expected_conditions
 def get_games(driver):
     sports = []
     try:
-        sports.append(WebDriverWait(driver, 5).until(
+        sports.extend(WebDriverWait(driver, 5).until(
             expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR, ".icon.icon-basketball"))))
     except:
         print("basketball not found")
     try:
-        sports.append(WebDriverWait(driver, 5).until(
+        sports.extend(WebDriverWait(driver, 5).until(
             expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR, ".icon.icon-nflball"))))
     except:
         print("football not found")
     try:
-        sports.append(WebDriverWait(driver, 5).until(
+        sports.extend(WebDriverWait(driver, 5).until(
             expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR, ".icon.icon-nhlball"))))
     except:
         print("nhl not found")
@@ -31,17 +31,18 @@ def get_odds(driver, sports):
         sport.click()
         games_in_division = []
         #name of division
-        division = WebDriverWait(driver, 5).until(
-            expected_conditions.presence_of_element_located((By.CLASS_NAME,"card-bottom-left-info_name"))
+        division = WebDriverWait(driver, 10).until(
+            expected_conditions.visibility_of_element_located((By.CSS_SELECTOR,".card-bottom-left-info__name"))
             ).text
-        games = WebDriverWait(driver, 5).until(
-            expected_conditions.presence_of_all_elements_located((By.CLASS_NAME,"card-shared-container"))
+        print(division)
+        games = WebDriverWait(driver, 10).until(
+            expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR,".card-shared-container"))
             )
         for game in games:
             odds_per_game_in_sport = {}
             #get teams
-            teams = WebDriverWait(driver, 5).until(
-                expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR,"card-team-name.label.card-row-header__team"))
+            teams = WebDriverWait(driver, 10).until(
+                expected_conditions.presence_of_all_elements_located((By.CSS_SELECTOR,".card-team-name.label.card-row-header__team"))
                 )
             odds_per_game_in_sport["teams"] = [team.text for team in teams]
             print(odds_per_game_in_sport["teams"])
@@ -66,3 +67,7 @@ def main():
     sports = get_games(driver)
     odds = get_odds(driver, sports)
     # driver.close()
+
+
+if __name__ == "__main__":
+    main()
