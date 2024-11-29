@@ -6,7 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.common.exceptions import TimeoutException
 
-def get_games(driver):
+def get_sports(driver):
     sports = []
     try:
         sports_scrollbar = WebDriverWait(driver, 10).until(
@@ -56,10 +56,11 @@ def get_odds_for_single_team(driver,team):
                 team_info["moneyline_odds"] = card.text
     return team_info
 
-def get_odds_for_single_game(driver, game):
+def get_odds_for_single_game(driver, gameElement):
+
         game = {}
         #get teams
-        game_info = WebDriverWait(driver, 10).until(
+        game_info = WebDriverWait(gameElement, 10).until(
             expected_conditions.visibility_of_all_elements_located((By.CSS_SELECTOR,".double-grid-card__group"))
             )
         #get home team info
@@ -82,14 +83,14 @@ def get_odds(driver, sports):
             division = WebDriverWait(driver, 4).until(
                 expected_conditions.visibility_of_element_located((By.CSS_SELECTOR,".card-bottom-left-info__name"))
                 ).text
-            print(division)
         except TimeoutException:
             print("error getting games")
             continue
         games = WebDriverWait(driver, 10).until(
-            expected_conditions.visibility_of_all_elements_located((By.CSS_SELECTOR,".card-shared-container"))
-            )
+             expected_conditions.visibility_of_all_elements_located((By.CSS_SELECTOR,".card-shared-container"))
+             )
         #for game in games:
+        print("num of games found", len(games))
         for game in games:
             games_in_division.append(get_odds_for_single_game(driver, game))
         odds[division] = games_in_division
@@ -99,18 +100,14 @@ def get_odds(driver, sports):
 
 def main():
     options = Options()
-    # mobile_emulation = {
-    #     "deviceName": "iPhone XR"
-    # }
-    # options.add_experimental_option("mobileEmulation" ,mobile_emulation)
     options.add_experimental_option("detach", True)
     options.add_argument('--user-agent=Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1')
     driver = webdriver.Chrome(options=options)
     driver.get("https://sports.getfliff.com")
-    sports = get_games(driver)
+    sports = get_sports(driver)
     odds = get_odds(driver, sports)
     print(odds)
-    # driver.close()
+    driver.close()
 
 
 if __name__ == "__main__":
