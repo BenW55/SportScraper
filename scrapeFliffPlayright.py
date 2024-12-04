@@ -1,4 +1,5 @@
 from playwright.sync_api import sync_playwright
+import datetime as dt
 
 def get_games(page):
     sports = []
@@ -20,6 +21,7 @@ def get_odds_for_single_team(team):
 
         for card in team_odds:
             values = card.query_selector_all("span")
+            print("len values", len(values), "text", values.text_content())
             if len(values) == 2:  # If there's a number and odds value (spread, total)
                 value = card.query_selector(".card-cell-param-label").inner_text()
                 odd = card.query_selector(".card-cell-label").inner_text()
@@ -41,12 +43,18 @@ def get_odds_for_single_game(page, game_element):
     game_info = {}
     try:
         teams = game_element.query_selector_all(".double-grid-card__group")
+        date = game_element.query_selector(".card-top-left-info__text").text_content()
+        date = " ".join(date.split(" ")[:-2])
+        if "Today" in date:
+            date = dt.datetime.now().strftime("%b %#d, %Y")
+        game_info["date"] = date
+        
         game_info["away"] = get_odds_for_single_team(teams[0])
         game_info["home"] = get_odds_for_single_team(teams[1])
-        game_info["over"] = game_info["away"]["over"]
-        del(game_info["away"]["over"])
-        game_info["under"] = game_info["home"]["under"]
-        del(game_info["home"]["under"])
+        game_info["over"] = game_info.get("away", {}).get("over", None)
+        game_info.get("away").pop("over", "none found")
+        game_info["under"] = game_info.get("home").get("under", None)
+        game_info.get("home").pop("under", "none found")
     except Exception as e:
         print(f"Error fetching odds for single game: {e}")
     return game_info
@@ -94,7 +102,7 @@ def main():
 
         sports = get_games(page)
         odds = get_odds(page, sports)
-        print(odds)
+        # print(odds)
 
         context.close()
         browser.close()
