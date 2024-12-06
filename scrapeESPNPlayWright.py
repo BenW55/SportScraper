@@ -11,8 +11,6 @@ def get_sports(page):
         sports["NCAAF"] = base_url+sports_element
         sports_element = page.get_by_test_id("chip-NCAAB").get_attribute("href")
         sports["NCAAB"] = base_url+sports_element
-        sports_element = page.get_by_test_id("chip-NCAAF").get_attribute("href")
-        sports["NCAAF"] = base_url+sports_element
         sports_element = page.get_by_test_id("chip-NBA").get_attribute("href")
         sports["NBA"] = base_url+sports_element
         sports_element = page.get_by_test_id("chip-NHL").get_attribute("href")
@@ -101,7 +99,8 @@ def main():
         sports = get_sports(page)
         odds =  get_odds(page, sports, p)
         # print(odds)
-        # browser.close()
+        browser.close()
+        p.stop()
 
 if __name__ == "__main__":
     main()

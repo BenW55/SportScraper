@@ -106,6 +106,7 @@ def main():
 
         context.close()
         browser.close()
+        playwright.stop()
 
 
 

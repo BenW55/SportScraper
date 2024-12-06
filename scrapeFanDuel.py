@@ -1,10 +1,12 @@
 """
 THIS PROGRAM IS PRONE TO BREAKING, THE WEBSITE HAS NO CLEAR WAY TO SCRAPE( EVERYTHING IS A DIV AND CLASES ARE "GC AF S" ETC)
 IF IT SUDDENLY STOPS WORKING, CHECK THE CSS ON THE WEBSITE
+IN PYTHON 3.15 get_date will break.
 """
 from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 import re
-import datetime as dt
+from datetime import datetime, timedelta
 import time
 def get_sports(page):
     base_url = "https://sportsbook.fanduel.com"
@@ -12,32 +14,51 @@ def get_sports(page):
     try:
         sports_element = page.get_by_title("NFL").first.get_attribute("href")
         sports["NFL"] = base_url+sports_element
-        # sports_element = page.get_by_title("NCAAF").first.get_attribute("href")
-        # sports["NCAAF"] = base_url+sports_element
-        # sports_element = page.get_by_title("NCAAB").first.get_attribute("href")
-        # sports["NCAAB"] = base_url+sports_element
-        # sports_element = page.get_by_title("NCAAF").first.get_attribute("href")
-        # sports["NCAAF"] = base_url+sports_element
-        # sports_element = page.get_by_title("NBA").first.get_attribute("href")
-        # sports["NBA"] = base_url+sports_element
-        # sports_element = page.get_by_title("NHL").first.get_attribute("href")
-        # sports["NHL"] = base_url+sports_element
+        sports_element = page.get_by_title("NCAAF").first.get_attribute("href")
+        sports["NCAAF"] = base_url+sports_element
+        sports_element = page.get_by_title("NBA").first.get_attribute("href")
+        sports["NBA"] = base_url+sports_element
+        sports_element = page.get_by_title("NHL").first.get_attribute("href")
+        sports["NHL"] = base_url+sports_element
+        sports_element = page.get_by_title("NCAAB").first.get_attribute("href")
+        sports["NCAAB"] = base_url+sports_element
+
+
     
     except Exception as e:
         print("Error getting  sports:", e)
 
     return sports
-
+def get_date(date_str):
+    try:
+        if ',' in date_str:  # Format: "Dec 16, 8:31pm ET"
+            date = datetime.strptime(date_str, "%b %d, %I:%M%p ET").replace(year=datetime.now().year)
+            return date.strftime("%b %#d, %Y")
+        elif any(day in date_str for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):  # Format: "Sun 1:00pm ET"
+            today = datetime.now()
+            target_day = datetime.strptime(date_str.split(' ')[0], "%a").weekday()
+            days_ahead = (target_day - today.weekday()) % 7
+            target_date = today + timedelta(days=days_ahead)
+            return target_date.strftime("%b %#d, %Y")
+        else:  # Format: "7:00pm ET" (use today's date)
+            today = datetime.now()
+            return today.strftime("%b %#d, %Y")
+    except Exception as e:
+        return f"Error: {e}"
+    
 def get_odds_for_single_team(team, team_odds):
     
     team_info = {}
-    # team_info["team"] = team.locator("").text_content()
-    print(team_odds.text_content())
-    odds = team_odds.get_by_role("div")
+    
+    team_info["team"] = re.sub("[0-9]*", "", team.text_content())
+    odds = team_odds.locator(".am.an.bj.bi.cp.cy.ae.af.cz.hw.db.s.cn.ja.bs.y.jj.jk.bv.jl.h.i.j.ah.ai.m.aj.o.ak.q.al")
+    
     num_odds = odds.count()
+
     for i in range(num_odds):
         odds_text = odds.nth(i).text_content()
-        print(odds_text)
+        
+        # print(odds_text)
         if "O" in odds_text:
             matches = re.findall(r"-?\d+\.\d+|-?\d+", odds_text)
             team_info["over"] = {"value": matches[0], "odds": matches[1] }
@@ -49,24 +70,26 @@ def get_odds_for_single_team(team, team_odds):
             team_info["spread"] = {"value": matches[0], "odds": matches[1] }
         else:
             team_info["moneyline"] =  odds_text 
-    print(team_info)
+
+    # print(team_info)
     return team_info
+
 def get_odds_for_single_game(game):
     game_odds = {}
     
     try:
-        team_info = game.locator('.am.an.ao.ap.cp.cy.af.s.h.i.j.ah.ai.m.aj.o.ak.q.al')
-        print("team info", team_info.text_content())
-        odds_info_away = game.locator(".am.aq.ao.bi.af.ho.s.cj.h.i.j.ah.ai.m.aj.o.ak.q.al")
-        odds_info_home = game.locator(".am.aq.ao.bi.af.ho.s.h.i.j.ah.ai.m.aj.o.ak.q.al")
-        # TODO: fix date
-        # date = game.locator('.text-style-xs-medium.flex.items-center.gap-x-2').text_content()
-        # date = " ".join(date.split(" ")[:3])
-        # if "Today" in date:
-        #     date = dt.datetime.now().strftime("%b %#d, %Y")
-        # game_odds["date"] = date
-        game_odds["away"] = get_odds_for_single_team(team_info.nth(0), odds_info_away)
-        game_odds["home"] = get_odds_for_single_team(team_info.nth(1), odds_info_home)
+        # print("\n new game \n")
+        team_info = game.locator(".am.an.ao.ap.cp.cy.af.s.h.i.j.ah.ai.m.aj.o.ak.q.al").all()
+        odds_info = game.locator(".am.aq.ao.bi.af.ho.s.h.i.j.ah.ai.m.aj.o.ak.q.al").all()
+        # print(len(team_info))
+        # print("away odds", odds_info[0].text_content())
+
+        # print("home odds", odds_info[1].text_content())
+        date_info = game.get_by_role("time").text_content()
+        game_odds["date"] = get_date(date_info)
+
+        game_odds["away"] = get_odds_for_single_team(team_info[0], odds_info[0])
+        game_odds["home"] = get_odds_for_single_team(team_info[2], odds_info[1])
 
         game_odds["over"] = game_odds.get("away", {}).get("over", None)
         game_odds.get("away").pop("over", "none found")
@@ -97,18 +120,35 @@ def get_odds(page, sports):
     
     return odds
 
-def main():
-    with sync_playwright() as p:
+def human_like_context(context):
+    context.add_init_script("""
+        // Overwrite the navigator.webdriver property to avoid detection
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    """)
 
-        browser = p.chromium.launch(headless=False)  
-        page = browser.new_page()
-        
-        # Navigate to the target URL
-        page.goto("https://sportsbook.fanduel.com")
-        sports = get_sports(page)
-        odds =  get_odds(page, sports)
-        # print(odds)
-        # browser.close()
+def main():
+    try:
+        with sync_playwright() as p:
+
+            browser = p.chromium.launch(headless=False)  
+            context = browser.new_context(
+                viewport={'width': 1280, 'height': 720},  # Common screen size
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+            )
+            human_like_context(context)
+            page = context.new_page()
+            # Navigate to the target URL
+            page.set_default_navigation_timeout(40000)
+            page.goto("https://sportsbook.fanduel.com")
+            
+            sports = get_sports(page)
+            time.sleep(2)
+            odds =  get_odds(page, sports)
+            print(odds)
+            browser.close()
+            p.stop()
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
