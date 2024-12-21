@@ -16,15 +16,16 @@ def get_games(page):
 def get_odds_for_single_team(team):
     team_info = {}
     try:
-        team_info["team"] = team.query_selector(".card-row-header").inner_text()
-        team_odds = team.query_selector_all(".card-cell-wrapper")
-
-        for card in team_odds:
-            values = card.query_selector_all("span")
-            print("len values", len(values), "text", values.text_content())
-            if len(values) == 2:  # If there's a number and odds value (spread, total)
-                value = card.query_selector(".card-cell-param-label").inner_text()
-                odd = card.query_selector(".card-cell-label").inner_text()
+        team_info["team"] = team.locator(".card-row-header").text_content()
+        team_odds = team.locator(".card-cell-wrapper")
+        team_odds_length =team_odds.count()
+        # for card in team_odds:
+        for i in range(team_odds_length):
+            values = team_odds.nth(i).locator("span")
+            # print("len values", len(values.text_content()), "text", values.text_content())
+            if values.count() == 2:  # If there's a number and odds value (spread, total)
+                value = values.nth(0).text_content()
+                odd = values.nth(1).text_content()
 
                 if "O" in value:  # Found over
                     team_info["over"] = {"value": value, "odds": odd}
@@ -33,7 +34,7 @@ def get_odds_for_single_team(team):
                 else:  # Spread
                     team_info["spread"] = {"value": value, "odds": odd}
             else:
-                team_info["moneyline_odds"] = card.inner_text()
+                team_info["moneyline_odds"] = team_odds.nth(i).text_content()
     except Exception as e:
         print(f"Error fetching odds for single team: {e}")
     return team_info
@@ -42,15 +43,15 @@ def get_odds_for_single_team(team):
 def get_odds_for_single_game(page, game_element):
     game_info = {}
     try:
-        teams = game_element.query_selector_all(".double-grid-card__group")
-        date = game_element.query_selector(".card-top-left-info__text").text_content()
+        teams = game_element.locator(".double-grid-card__group")
+        date = game_element.locator(".card-top-left-info").text_content()
         date = " ".join(date.split(" ")[:-2])
         if "Today" in date:
             date = dt.datetime.now().strftime("%b %#d, %Y")
         game_info["date"] = date
         
-        game_info["away"] = get_odds_for_single_team(teams[0])
-        game_info["home"] = get_odds_for_single_team(teams[1])
+        game_info["away"] = get_odds_for_single_team(teams.nth(0))
+        game_info["home"] = get_odds_for_single_team(teams.nth(1))
         game_info["over"] = game_info.get("away", {}).get("over", None)
         game_info.get("away").pop("over", "none found")
         game_info["under"] = game_info.get("home").get("under", None)
@@ -78,9 +79,11 @@ def get_odds(page, sports):
 
         games_in_division = []
         try:
-            games = page.query_selector_all(".card-shared-container")
-            for game in games:
-                games_in_division.append(get_odds_for_single_game(page, game))
+            games = page.locator(".card-shared-container")
+            game_count = games.count()
+
+            for i in range(game_count):
+                games_in_division.append(get_odds_for_single_game(page, games.nth(i)))
         except Exception as e:
             print(f"Error fetching games: {e}")
             continue
@@ -102,7 +105,7 @@ def main():
 
         sports = get_games(page)
         odds = get_odds(page, sports)
-        # print(odds)
+        print(odds)
 
         context.close()
         browser.close()

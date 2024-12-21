@@ -98,7 +98,7 @@ def main():
 
         sports = get_sports(page)
         odds =  get_odds(page, sports, p)
-        # print(odds)
+        print(odds)
         browser.close()
         p.stop()
 
