@@ -8,6 +8,8 @@ from playwright_stealth import stealth_sync
 import re
 from datetime import datetime, timedelta
 import time
+from random import randint
+
 def get_sports(page):
     base_url = "https://sportsbook.fanduel.com"
     sports = {}
@@ -31,16 +33,17 @@ def get_sports(page):
     return sports
 def get_date(date_str):
     try:
-        if ',' in date_str:  # Format: "Dec 16, 8:31pm ET"
-            date = datetime.strptime(date_str, "%b %d, %I:%M%p ET").replace(year=datetime.now().year)
+        if ',' in date_str:  
+            date_str = f"{datetime.now().year}, {date_str}"
+            date = datetime.strptime(date_str, "%Y, %b %d, %I:%M%p ET")
             return date.strftime("%b %#d, %Y")
-        elif any(day in date_str for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):  # Format: "Sun 1:00pm ET"
+        elif any(day in date_str for day in ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]):  
             today = datetime.now()
             target_day = datetime.strptime(date_str.split(' ')[0], "%a").weekday()
             days_ahead = (target_day - today.weekday()) % 7
             target_date = today + timedelta(days=days_ahead)
             return target_date.strftime("%b %#d, %Y")
-        else:  # Format: "7:00pm ET" (use today's date)
+        else:  
             today = datetime.now()
             return today.strftime("%b %#d, %Y")
     except Exception as e:
@@ -78,7 +81,7 @@ def get_odds_for_single_game(game):
     game_odds = {}
     
     try:
-        # print("\n new game \n")
+        print("\n new game \n")
         team_info = game.locator(".am.an.ao.ap.cp.cy.af.s.h.i.j.ah.ai.m.aj.o.ak.q.al").all()
         odds_info = game.locator(".am.aq.ao.bi.af.ho.s.h.i.j.ah.ai.m.aj.o.ak.q.al").all()
         # print(len(team_info))
@@ -105,6 +108,7 @@ def get_odds(page, sports):
     for sport,url in sports.items():
         games = []
         page.goto(url)
+        simulate_human_interaction(page)
         time.sleep(2)
         try:
             game_grid = page.locator(".hx.af.s.h.i.j.ah.ai.m.aj.o.ak.q.al")
@@ -120,6 +124,18 @@ def get_odds(page, sports):
     
     return odds
 
+def simulate_human_interaction(page):
+    # Random scrolling
+    for _ in range(randint(5, 10)):
+        page.mouse.wheel(0, randint(100, 500))
+        time.sleep(randint(1, 3))
+
+    # Random mouse movements
+    for _ in range(randint(3, 7)):
+        x, y = randint(0, 1280), randint(0, 720)
+        page.mouse.move(x, y, steps=randint(5, 20))
+        time.sleep(randint(1, 2))
+        
 def human_like_context(context):
     context.add_init_script("""
         // Overwrite the navigator.webdriver property to avoid detection
@@ -133,16 +149,19 @@ def main():
             browser = p.chromium.launch(headless=False)  
             context = browser.new_context(
                 viewport={'width': 1280, 'height': 720},  # Common screen size
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+                geolocation={"latitude": 37.7749, "longitude": -122.4194},  # Example location
+                permissions=["geolocation"],  # Grant geolocation permission
             )
             human_like_context(context)
+
             page = context.new_page()
             # Navigate to the target URL
             page.set_default_navigation_timeout(40000)
             page.goto("https://sportsbook.fanduel.com")
-            
+            print(page.inner_text("body"))
             sports = get_sports(page)
-            time.sleep(2)
+            time.sleep(3)
             odds =  get_odds(page, sports)
             print(odds)
             browser.close()
