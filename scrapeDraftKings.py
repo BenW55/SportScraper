@@ -72,6 +72,8 @@ def sort_data_per_league(league_data):
         team = game["home"] if game["home"] in odds else game["away"]
         game["home"] = odds[team]["home"]
         game["away"] = odds[team]["away"]
+        game["over"] = odds[team]["over"]
+        game["under"] = odds[team]["under"]
 
 
 
@@ -96,7 +98,8 @@ def request_per_league(URLS, HEADERS):
 
 def main():
     URLS = {}
-    URLS["NFL"] ="https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/88808"
+    URLS["NFL"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/88808"
+    URLS["NHL"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/42133"
     HEADERS = {
         "accept": "*/*",
         "accept-encoding": "gzip, deflate, br, zstd",
