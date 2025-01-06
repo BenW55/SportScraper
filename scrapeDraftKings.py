@@ -69,6 +69,7 @@ def sort_data_per_league(league_data):
 
     #loop through all events
     for game in games:
+    #check for key matches for home and away team, and add to that game
         team = game["home"] if game["home"] in odds else game["away"]
         game["home"] = odds[team]["home"]
         game["away"] = odds[team]["away"]
@@ -77,11 +78,7 @@ def sort_data_per_league(league_data):
 
 
 
-    #check for key matches for home and away team, and add to that game
-
-
-    print(games)
-    # print(len(games))
+    
     return games
 
 
@@ -94,12 +91,15 @@ def request_per_league(URLS, HEADERS):
             odds[league] = sort_data_per_league(data)
         except Exception as e:
             print("error making requests", e)
-
+    return odds
 
 def main():
     URLS = {}
     URLS["NFL"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/88808"
     URLS["NHL"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/42133"
+    URLS["NBA"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/42648"
+    URLS["NCAAB"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/92483"
+    URLS["NCAAF"] = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/87637"
     HEADERS = {
         "accept": "*/*",
         "accept-encoding": "gzip, deflate, br, zstd",
@@ -116,7 +116,7 @@ def main():
     }
     
     odds = request_per_league(URLS, HEADERS)
-
+    print(odds)
 
 
 if __name__ == "__main__":
