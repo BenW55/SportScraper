@@ -48,6 +48,8 @@ def get_odds_for_single_game(page, game_element):
         date = " ".join(date.split(" ")[:-2])
         if "Today" in date:
             date = dt.datetime.now().strftime("%b %#d, %Y")
+        elif "Tomorrow" in date:
+            date = (dt.datetime.now() + dt.timedelta(days=1)).strftime("%b %#d, %Y")
         game_info["date"] = date
         
         game_info["away"] = get_odds_for_single_team(teams.nth(0))
@@ -94,7 +96,7 @@ def get_odds(page, sports):
 
 def main():
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False)
+        browser = playwright.chromium.launch(headless=True)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1",
             geolocation={"latitude": 43.0731, "longitude": -89.4012},  # Madison, WI
