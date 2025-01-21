@@ -1,3 +1,5 @@
+#TODO: work on fixing the live
+
 from playwright.sync_api import sync_playwright
 import datetime as dt
 

@@ -8,27 +8,25 @@ def get_sports(page):
     top_widget = page.locator("#sports-nav a")
     top_widget_count = top_widget.count()
     try:
-        
-        popup = page.locator('svg[title="theme-ex"]')
-        popup.wait_for(state='visible', timeout=10000)
+        try:
+            popup = page.locator('svg[title="theme-ex"]')
+            popup.wait_for(state='visible', timeout=6000)
+            if popup.is_visible():
+                popup.click()
+        except Exception as e:
+            pass
 
-        if popup.is_visible():
-            popup.click()
         sports["NFL"] = top_widget.locator("text=NFL")
         sports["NBA"] = top_widget.locator("text=NBA", exact=True)   
         sports["NCAAB"] = top_widget.locator("text=NCAAB")    
         sports["NHL"] = top_widget.locator("text=NHL")
-    
-        for sport in sports.values():
-            sport.click()
-            time.sleep(3)
     
     except Exception as e:
         print("Error getting  sports:", e)
 
     return sports
 
-def get_odds_for_single_team(team):
+def get_odds_for_single_team(team_name, spread, total, moneyline):
     
     team_info = {}
     team_info["team"] = team.locator(".text-style-s-medium.text-primary.text-primary").text_content()
@@ -52,15 +50,24 @@ def get_odds_for_single_game(game):
     game_odds = {}
     
     try:
-        team_info = game.locator('.flex.p-0')
+        #get team name
+        team_name = game.locator('.participant-container')
+        #get container with all odds
+        odds_info = game.locator('ms-option-group')
+        #get both odds container within the spread container
+        spread_info = odds_info.nth(0).locator('ms-option')
+        #get both odds container within the total container
+        total_info = odds_info.nth(1).locator('ms-option')
+        #get both odds container within the moneyline container
+        money_info = odds_info.nth(2).locator('ms-option')
         
         date = game.locator('.text-style-xs-medium.flex.items-center.gap-x-2').text_content()
         date = " ".join(date.split(" ")[:3])
         if "Today" in date:
             date = dt.datetime.now().strftime("%b %#d, %Y")
         game_odds["date"] = date
-        game_odds["away"] = get_odds_for_single_team(team_info.nth(0))
-        game_odds["home"] = get_odds_for_single_team(team_info.nth(1))
+        game_odds["away"] = get_odds_for_single_team(team_name.nth(0), spread_info.nth(0), total_info.nth(0), money_info.nth(0))
+        game_odds["home"] = get_odds_for_single_team(team_name.nth(1), spread_info.nth(1), total_info.nth(1), money_info.nth(1))
         game_odds["over"] = game_odds.get("away", {}).get("over", None)
         game_odds.get("away").pop("over", "none found")
         game_odds["under"] = game_odds.get("home").get("under", None)
@@ -72,18 +79,18 @@ def get_odds_for_single_game(game):
 
 def get_odds(page, sports, p):
     odds = {}
-    for sport,url in sports.items():
+    for sport, button in sports:
         games = []
-        page.goto(url)
+        button.click()
         try:
-            game_grid = page.get_by_test_id("marketplace-shelf-")
-            game_list = game_grid.get_by_role("article") 
-            page.wait_for_selector('article')
+            #grid with games
+            game_grid = page.locator("ms-event-group")
+            #TODO: might cause slight error, six pack might mean all 6 odds(ML spread total) so ones without might be diff
+            #get all of the boxes that have represent games
+            game_list = game_grid.locator("ms-six-pack-event")
             game_count = game_list.count()
             for i in range(game_count):
-                p.selectors.set_test_id_attribute("data-dd-action-name")
                 games.append(get_odds_for_single_game(game_list.nth(i)))
-                p.selectors.set_test_id_attribute("data-testid")
             odds[sport] = games    
         except Exception as e:
             print("Most likely no games found", e)
@@ -102,7 +109,7 @@ def main():
         
 
         sports = get_sports(page)
-        # odds =  get_odds(page, sports, p)
+        odds =  get_odds(page, sports, p)
         # print(odds)
         browser.close()
         p.stop()

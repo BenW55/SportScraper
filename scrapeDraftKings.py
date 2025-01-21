@@ -1,81 +1,98 @@
 import requests
 from datetime import datetime
 
+#TODO: work on fixing the live maybe? not sure how it works with live games
+
 #maybe change name, but this func will add all of the IDS
 def get_odds_per_league(odds_info):
-    odds = {}
+    try:
+        odds = {}
 
-    def initialize_market(market_id):
+        def initialize_market(market_id):
+            #create the market id for each game and init the away and home dict
+            if market_id not in odds:
+                odds[market_id] = {"away": {}, "home": {}}
+
+        def process_spread(odd, market_id):
+            # if dict matches Away set team to away else home
+            team = "away" if odd["outcomeType"] == "Away" else "home"
+            #set away or home spread value and odds
+            odds[market_id][team]["spread"] = {"value": odd["points"], "odds": odd["displayOdds"]["american"]}
+            #if we havent seen this team yet, add the team name
+            if "team" not in odds[market_id][team]:
+                odds[market_id][team]["team"] = odd["label"]
+
+        def process_over_under(odd, market_id):
+            #if label is over set var to over else under
+            over_under_key = "over" if odd["label"] == "Over" else "under"
+            #set the over under value and odds
+            odds[market_id][over_under_key] = {"value": odd["points"], "odds": odd["displayOdds"]["american"]}
+
+        def process_moneyline(odd, market_id):
+            # if dict matches Away set team to away else home
+            team = "away" if odd["outcomeType"] == "Away" else "home"
+            # set moneyline for away or home team
+            odds[market_id][team]["moneyline"] = odd["displayOdds"]["american"]
+            #if we havent seen this team yet, add the team name
+            if "team" not in odds[market_id][team]:
+                odds[market_id][team]["team"] = odd["label"]
+
+        # Loop through odds
+        for odd in odds_info:
+            #seperate out marketID(value after _)
+            market_id = odd["marketId"].split("_")[1]
+            initialize_market(market_id)
+            #spread
+            if "HC" in odd["id"]:
+                process_spread(odd, market_id)
+            #total
+            elif "OU" in odd["id"]:
+                process_over_under(odd, market_id)
+            #moneyline
+            else:
+                process_moneyline(odd, market_id)
         
-        if market_id not in odds:
-            odds[market_id] = {"away": {}, "home": {}}
-
-    def process_spread(odd, market_id):
-        
-        team = "away" if odd["outcomeType"] == "Away" else "home"
-        odds[market_id][team]["spread"] = {"value": odd["points"], "odds": odd["displayOdds"]["american"]}
-        if "team" not in odds[market_id][team]:
-            odds[market_id][team]["team"] = odd["label"]
-
-    def process_over_under(odd, market_id):
-        
-        over_under_key = "over" if odd["label"] == "Over" else "under"
-        odds[market_id][over_under_key] = {"value": odd["points"], "odds": odd["displayOdds"]["american"]}
-
-    def process_moneyline(odd, market_id):
-        
-        team = "away" if odd["outcomeType"] == "Away" else "home"
-        odds[market_id][team]["moneyline"] = odd["displayOdds"]["american"]
-        if "team" not in odds[market_id][team]:
-            odds[market_id][team]["team"] = odd["label"]
-
-    # Loop through odds
-    for odd in odds_info:
-        #seperate out marketID(value after _)
-        market_id = odd["marketId"].split("_")[1]
-        initialize_market(market_id)
-        #spread
-        if "HC" in odd["id"]:
-            process_spread(odd, market_id)
-        #total
-        elif "OU" in odd["id"]:
-            process_over_under(odd, market_id)
-        #moneyline
-        else:
-            process_moneyline(odd, market_id)
-    
-    #replace market id with a team name
-    odds =  {odd["away"]["team"] if odd["away"] else odd["home"]["team"]: odd for key, odd in odds.items()}
-    # print(odds)
+        #replace market id with a team name
+        odds =  {odd["away"]["team"] if odd["away"] else odd["home"]["team"]: odd for key, odd in odds.items()}
+        # print(odds)
+    except Exception as e:
+        print("error getting the odds in the league", e)
     return odds
 
 
 
 def sort_data_per_league(league_data):
+    
     games = []
     # try to run parallel, so this loop and other loop at same time
-    for team in league_data["events"]:
-        date = team["startEventDate"]
-        parsed_date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f0Z')
-        formatted_date = parsed_date.strftime('%b %#d, %Y')
+    try:
+        for team in league_data["events"]:
+            date = team["startEventDate"]
+            parsed_date = datetime.strptime(date, '%Y-%m-%dT%H:%M:%S.%f0Z')
+            formatted_date = parsed_date.strftime('%b %#d, %Y')
 
-        single_game_info = {"date" : formatted_date}
-        single_game_info["home"] = team["participants"][0]["name"]
-        single_game_info["away"] = team["participants"][1]["name"]
-        games.append(single_game_info)
-    odds = get_odds_per_league(league_data["selections"])
-    #TODO: get market id somehow
+            single_game_info = {"date" : formatted_date}
+            single_game_info["home"] = team["participants"][0]["name"]
+            single_game_info["away"] = team["participants"][1]["name"]
+            games.append(single_game_info)
+    except Exception as e:
+        print("error setting up game dicts", e)
     #call func to filter bet info
-
+    odds = get_odds_per_league(league_data["selections"])
     #loop through all events
-    for game in games:
-    #check for key matches for home and away team, and add to that game
-        team = game["home"] if game["home"] in odds else game["away"]
-        game["home"] = odds[team]["home"]
-        game["away"] = odds[team]["away"]
-        game["over"] = odds[team]["over"]
-        game["under"] = odds[team]["under"]
-
+    try:
+        for game in games:
+            #see if matching key is the home or away team in this game and set it to a var
+            team = game["home"] if game["home"] in odds else game["away"]
+            # need to do odds[team] because thats the maching key
+            game["home"] = odds[team]["home"]
+            game["away"] = odds[team]["away"]
+            #if we found an over set it, else set to None
+            game["over"] = odds[team]["over"] if "over" in odds[team] else None
+            #if we found an under set it, else set to None
+            game["under"] = odds[team]["under"] if "under" in odds[team] else None
+    except Exception as e:
+        print("error adding odds to game dicts", e, "league odds", odds)
 
 
     
