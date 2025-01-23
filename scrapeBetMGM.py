@@ -25,7 +25,7 @@ def get_sports(page):
         print("Error getting  sports:", e)
 
     return sports
-
+#TODO: not updated
 def get_odds_for_single_team(team_name, spread, total, moneyline):
     
     team_info = {}
@@ -60,7 +60,7 @@ def get_odds_for_single_game(game):
         total_info = odds_info.nth(1).locator('ms-option')
         #get both odds container within the moneyline container
         money_info = odds_info.nth(2).locator('ms-option')
-        
+        #TODO: update date
         date = game.locator('.text-style-xs-medium.flex.items-center.gap-x-2').text_content()
         date = " ".join(date.split(" ")[:3])
         if "Today" in date:

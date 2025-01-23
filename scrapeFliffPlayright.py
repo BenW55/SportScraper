@@ -24,7 +24,6 @@ def get_odds_for_single_team(team):
         # for card in team_odds:
         for i in range(team_odds_length):
             values = team_odds.nth(i).locator("span")
-            # print("len values", len(values.text_content()), "text", values.text_content())
             if values.count() == 2:  # If there's a number and odds value (spread, total)
                 value = values.nth(0).text_content()
                 odd = values.nth(1).text_content()
