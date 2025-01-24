@@ -2,6 +2,24 @@ from playwright.sync_api import sync_playwright, expect
 import re
 import datetime as dt
 import time
+
+#TODO: work on fixing the live maybe? not sure how it works with live games
+
+
+def get_date(date):
+    if "Tomorrow" in date:
+    #might need to bring back
+    # tomorrow = dt.datetime.now() + dt.timedelta(days=1)
+        date = (dt.datetime.now() + dt.timedelta(days=1)).strftime("%b %#d, %Y")
+    elif "Today" in date:
+        date = dt.datetime.now().strftime("%b %#d, %Y")
+    else:
+        parsed_date = dt.datetime.strptime(date, '%m/%d/%y • %I:%M %p')
+        date = parsed_date.strftime("%b %#d, %Y")
+
+    return date
+
+
 def get_sports(page):
     sports = {} 
     #get left widget items
@@ -60,11 +78,9 @@ def get_odds_for_single_game(game):
         total_info = odds_info.nth(1).locator('ms-option')
         #get both odds container within the moneyline container
         money_info = odds_info.nth(2).locator('ms-option')
-        #TODO: update date
-        date = game.locator('.text-style-xs-medium.flex.items-center.gap-x-2').text_content()
-        date = " ".join(date.split(" ")[:3])
-        if "Today" in date:
-            date = dt.datetime.now().strftime("%b %#d, %Y")
+
+        date = get_date(game.locator('ms-event-timer').text_content())
+
         game_odds["date"] = date
         game_odds["away"] = get_odds_for_single_team(team_name.nth(0), spread_info.nth(0), total_info.nth(0), money_info.nth(0))
         game_odds["home"] = get_odds_for_single_team(team_name.nth(1), spread_info.nth(1), total_info.nth(1), money_info.nth(1))
