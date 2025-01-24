@@ -35,9 +35,9 @@ def get_sports(page):
             pass
 
         sports["NFL"] = top_widget.locator("text=NFL")
-        sports["NBA"] = top_widget.locator("text=NBA", exact=True)   
-        sports["NCAAB"] = top_widget.locator("text=NCAAB")    
-        sports["NHL"] = top_widget.locator("text=NHL")
+        # sports["NBA"] = top_widget.locator("text=NBA", exact=True)   
+        # sports["NCAAB"] = top_widget.locator("text=NCAAB")    
+        # sports["NHL"] = top_widget.locator("text=NHL")
     
     except Exception as e:
         print("Error getting  sports:", e)
@@ -66,7 +66,7 @@ def get_odds_for_single_team(team_name, spread, total, moneyline):
     return team_info
 def get_odds_for_single_game(game):
     game_odds = {}
-    
+    print("in odds for single game")
     try:
         #get team name
         team_name = game.locator('.participant-container')
@@ -78,9 +78,8 @@ def get_odds_for_single_game(game):
         total_info = odds_info.nth(1).locator('ms-option')
         #get both odds container within the moneyline container
         money_info = odds_info.nth(2).locator('ms-option')
-
+        #get date text and format
         date = get_date(game.locator('ms-event-timer').text_content())
-
         game_odds["date"] = date
         game_odds["away"] = get_odds_for_single_team(team_name.nth(0), spread_info.nth(0), total_info.nth(0), money_info.nth(0))
         game_odds["home"] = get_odds_for_single_team(team_name.nth(1), spread_info.nth(1), total_info.nth(1), money_info.nth(1))
@@ -95,7 +94,7 @@ def get_odds_for_single_game(game):
 
 def get_odds(page, sports, p):
     odds = {}
-    for sport, button in sports:
+    for (sport, button) in sports.items():
         games = []
         button.click()
         try:
@@ -106,6 +105,7 @@ def get_odds(page, sports, p):
             game_list = game_grid.locator("ms-six-pack-event")
             game_count = game_list.count()
             for i in range(game_count):
+                print("in loop for selecting games")
                 games.append(get_odds_for_single_game(game_list.nth(i)))
             odds[sport] = games    
         except Exception as e:
